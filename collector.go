@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -36,14 +37,17 @@ type Collector struct {
 	hasher          hash.Hash
 }
 
-func FromString(reportType string) ReportType {
+func FromString(reportType string) (ReportType, error) {
 	switch reportType {
 	case Hail.String():
-		return Hail
+		return Hail, nil
 	case Wind.String():
-		return Wind
+		return Wind, nil
 	case Tornado.String():
-		return Tornado
+		return Tornado, nil
+	default:
+		return 0, errors.New("unknown report type")
+
 	}
 }
 
