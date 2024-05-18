@@ -1,4 +1,4 @@
-module github.com/jason-costello/weather/collectorsvc
+module github.com/stormsync/collector
 
 go 1.22.2
 
