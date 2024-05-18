@@ -1,4 +1,4 @@
-package main
+package collector
 
 import (
 	"context"
@@ -15,6 +15,16 @@ import (
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/scram"
+)
+
+
+//go:generate stringer -type=ReportType
+type ReportType int
+
+const (
+	Hail ReportType = iota
+	Wind
+	Tornado
 )
 
 type Collector struct {

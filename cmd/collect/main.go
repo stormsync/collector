@@ -9,15 +9,6 @@ import (
 	"time"
 )
 
-//go:generate stringer -type=ReportType
-type ReportType int
-
-const (
-	Hail ReportType = iota
-	Wind
-	Tornado
-)
-
 func main() {
 	var (
 		WindURL    = "https://www.spc.noaa.gov/climo/reports/today_wind.csv"
