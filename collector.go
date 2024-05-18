@@ -17,7 +17,6 @@ import (
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
-
 //go:generate stringer -type=ReportType
 type ReportType int
 
@@ -35,6 +34,17 @@ type Collector struct {
 	lastTornadoHash string
 	lastWindHash    string
 	hasher          hash.Hash
+}
+
+func FromString(reportType string) ReportType {
+	switch reportType {
+	case Hail.String():
+		return Hail
+	case Wind.String():
+		return Wind
+	case Tornado.String():
+		return Tornado
+	}
 }
 
 // NewCollector generates a new collector that has a kafka writer configured and ready to write.
