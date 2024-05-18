@@ -7,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	collector "github.com/jason-costello/weather/collectorsvc"
 )
 
 func main() {
@@ -49,13 +51,13 @@ func main() {
 		log.Fatal("only integers, representing seconds, are allowed for interval")
 	}
 
-	urlMap := map[ReportType]string{
-		Wind:    WindURL,
-		Hail:    HailURL,
-		Tornado: TornadoURL,
+	urlMap := map[collector.ReportType]string{
+		collector.Wind:    WindURL,
+		collector.Hail:    HailURL,
+		collector.Tornado: TornadoURL,
 	}
 
-	collector, err := NewCollector(address, topic, user, pw, urlMap)
+	collector, err := collector.NewCollector(address, topic, user, pw, urlMap)
 	if err != nil {
 		log.Fatal("failed to create the collect: %w", err)
 	}
