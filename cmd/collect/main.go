@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	collector "github.com/jason-costello/weather/collectorsvc"
+	"github.com/stormsync/collector"
 )
 
 func main() {
