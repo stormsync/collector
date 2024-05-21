@@ -1,0 +1,125 @@
+NWS Office ID List
+========================================================
+Aberdeen, SD			ABR
+Albany, NY			ALY
+Albuquerque, NM			ABQ
+Amarillo, TX			AMA
+Anchorage, AK			AFC
+Anchorage, AK			ANC
+Atlanta, GA			FFC
+Austin/San Antonio, TX		EWX
+Billings, MT			BYZ
+Binghamton, NY			BGM
+Birmingham, AL			BMX
+Bismarck, ND			BIS
+Blacksburg, VA			RNK
+Boise, ID			BOI
+Boston, MA			BOX
+Brownsville, TX			BRO
+Buffalo, NY			BUF
+Burlington, VT			BTV
+Caribou, ME			CAR
+Charleston, SC			CHS
+Charleston, WV			RLX
+Cheyenne, WY			CYS
+Chicago, IL			LOT
+Cleveland, OH			CLE
+Columbia, SC			CAE
+Corpus Christi, TX		CRP
+Dallas/Fort Worth, TX		FWD
+Denver/Boulder, CO		BOU
+Des Moines, IA			DMX
+Detroit, MI			DTX
+Dodge City, KS			DDC
+Duluth, MN			DLH
+El Paso, TX			EPZ
+Elko, NV			LKN
+Eureka, CA			EKA
+Fairbanks, AK			AFG
+Flagstaff, AZ			FGZ
+Gaylord, MI			APX
+Glasgow, MT			GGW
+Goodland, KS			GLD
+Grand Forks, ND			FGF
+Grand Junction, CO		GJT
+Grand Rapids, MI		GRR
+Gray, ME			GYX
+Great Falls, MT			TFX
+Green Bay, WI			GRB
+Greer, SC			GSP
+Guam, GU			GUM
+Hanford, CA			HNX
+Hastings, NE			GID
+Honolulu, HI			HFO
+Houston, TX			HGX
+Huntsville, AL			HUN
+Indianapolis, IN		IND
+Jackson, MS			JAN
+Jackson, KY			JKL
+Jacksonville, FL		JAX
+Juneau, AK			AJK
+Kansas City, MO			EAX
+Key West, FL			EYW
+La Crosse, WI			ARX
+Lake Charles, LA		LCH
+Las Vegas, NV			VEF
+Lincoln, IL			ILX
+Little Rock, AR			LZK
+Los Angeles, CA			LOX
+Louisville, KY			LMK
+Lubbock, TX			LUB
+Marquette, MI			MQT
+Medford, OR			MFR
+Melbourne, FL			MLB
+Memphis, TN			MEG
+Miami, FL			MFL
+Midland/Odessa, TX		MAF
+Milwaukee, WI			MKX
+Missoula, MT			MSO
+Mobile, AL			MOB
+Morehead City, NC		MHX
+Morristown, TN			MRX
+Mount Holly, NJ			PHI
+Nashville, TN			OHX
+New Orleans, LA			LIX
+New York City, NY		OKX
+Norman, OK			OUN
+North Platte, NE		LBF
+Nrn. Indiana, IN		IWX
+Omaha, NE			OAX
+Paducah, KY			PAH
+Pendleton, OR			PDT
+Phoenix, AZ			PSR
+Pittsburgh, PA			PBZ
+Pocatello, ID			PIH
+Portland, OR			PQR
+Pueblo, CO			PUB
+Quad Cities, IA			DVN
+Raleigh, NC			RAH
+Rapid City, SD			UNR
+Reno, NV			REV
+Riverton, WY			RIW
+Sacramento, CA			STO
+Salt Lake City, UT		SLC
+San Angelo, TX			SJT
+San Diego, CA			SGX
+San Francisco, CA		MTR
+San Juan, PR			SJU
+Seattle, WA			SEW
+Shreveport, LA			SHV
+Sioux Falls, SD			FSD
+Spokane, WA			OTX
+Springfield, MO			SGF
+St. Louis, MO			LSX
+State College, PA		CTP
+Sterling, VA			LWX
+Tallahassee, FL			TAE
+Tampa Bay Area, FL		TBW
+Topeka, KS			TOP
+Tucson, AZ			TWC
+Tulsa, OK			TSA
+Twin Cities, MN			MPX
+Wakefield, VA			AKQ
+Wichita, KS			ICT
+Wilmington, NC			ILM
+Wilmington, OH			ILN
