@@ -55,14 +55,14 @@ entries, and forwarding valid reports to a Kafka topic for downstream consumptio
 
 > Run using the command below:
 > ```console
-> KAFKA_ADDRESS="my.kafka.ip-or-hostname:PORT"
-> KAFKA_USER="my-kafka-username"
-> KAFKA_PASSWORD="my-kafka-password"
-> TOPIC="kafka-topic-to-send-reports-to"
-> POLLING_INTERVAL_IN_SECONDS="60"
-> REDIS_ADDRESS="my-redis-ip-or-hostname:PORT"
-> REDIS_USER="my-redis-user"
-> REDIS_PASSWORD="my-redis-password"
+> KAFKA_ADDRESS="my.kafka.ip-or-hostname:PORT" \
+> KAFKA_USER="my-kafka-username" \
+> KAFKA_PASSWORD="my-kafka-password" \
+> TOPIC="kafka-topic-to-send-reports-to" \
+> POLLING_INTERVAL_IN_SECONDS="60" \
+> REDIS_ADDRESS="my-redis-ip-or-hostname:PORT" \
+> REDIS_USER="my-redis-user" \
+> REDIS_PASSWORD="my-redis-password" \
 > ./app
 > ```
 
