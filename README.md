@@ -87,29 +87,51 @@ If you do not use the environment variables or do not have them set in the envir
 
 ---
 
-## Repository Structure
+[//]: # ()
+[//]: # (## Repository Structure)
 
-```sh
-└── /
-    ├── Dockerfile
-    ├── cmd
-    │   └── collect
-    │       └── main.go
-    ├── collector.go
-    ├── collector_test.go
-    ├── go.mod
-    ├── go.sum
-    ├── golangci.yaml
-    ├── image
-    │   └── stormsync-banner.png
-    ├── redis.go
-    ├── reporttype_string.go
-    └── test_data
-        ├── filtered_hail.csv
-        ├── filtered_torn.csv
-        ├── filtered_wind.csv
-        └── nws_office_id_list.txt
-```
+[//]: # ()
+[//]: # (```sh)
+
+[//]: # (└── /)
+
+[//]: # (    ├── Dockerfile)
+
+[//]: # (    ├── cmd)
+
+[//]: # (    │   └── collect)
+
+[//]: # (    │       └── main.go)
+
+[//]: # (    ├── collector.go)
+
+[//]: # (    ├── collector_test.go)
+
+[//]: # (    ├── go.mod)
+
+[//]: # (    ├── go.sum)
+
+[//]: # (    ├── golangci.yaml)
+
+[//]: # (    ├── image)
+
+[//]: # (    │   └── stormsync-banner.png)
+
+[//]: # (    ├── redis.go)
+
+[//]: # (    ├── reporttype_string.go)
+
+[//]: # (    └── test_data)
+
+[//]: # (        ├── filtered_hail.csv)
+
+[//]: # (        ├── filtered_torn.csv)
+
+[//]: # (        ├── filtered_wind.csv)
+
+[//]: # (        └── nws_office_id_list.txt)
+
+[//]: # (```)
 
 [//]: # (## Project Roadmap)
 
