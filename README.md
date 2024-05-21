@@ -2,15 +2,10 @@
 	<img src="https://img.shields.io/badge/Docker-2496ED.svg?style=default&logo=Docker&logoColor=white" alt="Docker">
     <img src="https://img.shields.io/github/go-mod/go-version/stormsync/collector" alt="">
 </p>
----
+
 <p style="text-align:center">
   <img src="image/stormsync-banner.png" width="1792" alt="project-banner">
 </p>
-
-
-
-
-
 
 <hr>
 
