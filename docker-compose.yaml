@@ -1,0 +1,49 @@
+version: "3"
+services:
+  vault:
+    hostname: vault
+    container_name: vault
+    image: vault:1.12.0
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
+      VAULT_API_ADDR: "http://0.0.0.0:8200"
+      VAULT_LOCAL_CONFIG: '{"backend": {"file": {"path": "/vault/file"}},"listener": {"tcp": {"address": "0.0.0.0:8200", "tls_disable": 1}}, "ui": true}'
+      TZ: "America/Chicago"
+    ports:
+      - "8200:8200"
+    volumes:
+      - /Users/jc/compose-volumes/vault/file:/vault/file:rw
+      - /Users/jc/compose-volumes/vault/config.hcl:/vault/config/config.hcl:rw
+
+    cap_add:
+      - IPC_LOCK
+    entrypoint: vault server -dev -dev-listen-address="0.0.0.0:8200" -dev-root-token-id="root"
+
+
+  redis:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes:
+      - /Users/jc/compose-volumes/redis/data:/data
+
+
+  collector:
+    hostname: collector
+    container_name: collector
+    image: collector:latest
+    environment:
+      VAULT_TOKEN: "root"
+      ENVIRONMENT: "development"
+    volumes:
+      - /Users/jc/compose-volumes/collector/configs/development.yaml:/configs/development.yaml:rw
+    user: "1001"
+    expose:
+    - "8088"
+    entrypoint: "app"
+    depends_on:
+      - vault
+      - redis
+

@@ -3,7 +3,6 @@ package collector
 import (
 	"context"
 	"crypto/sha256"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"hash"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
 //go:generate stringer -type=ReportType
@@ -52,29 +50,14 @@ func FromString(reportType string) (ReportType, error) {
 }
 
 // NewCollector generates a new collector that has a kafka writer configured and ready to write.
-func NewCollector(address, topic, user, pw string, collectionURLs map[ReportType]string, rc *redis.Client, logger *slog.Logger) (*Collector, error) {
+func NewCollector(collectionURLs map[ReportType]string, rc *redis.Client, kw *kafka.Writer, logger *slog.Logger) (*Collector, error) {
 	if logger == nil {
 		log.Fatal("logger can't be nil")
 	}
-
-	mechanism, err := scram.Mechanism(scram.SHA256, user, pw)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create scram.Mechanism for auth: %w", err)
-	}
-
-	w := &kafka.Writer{
-		Addr:  kafka.TCP(address),
-		Topic: topic,
-		Transport: &kafka.Transport{
-			SASL: mechanism,
-			TLS:  &tls.Config{},
-		},
-	}
-
 	return &Collector{
-		topic:          topic,
+		topic:          kw.Topic,
 		collectionURLs: collectionURLs,
-		producer:       w,
+		producer:       kw,
 		hasher:         sha256.New(),
 		logger:         logger,
 		redis:          rc,

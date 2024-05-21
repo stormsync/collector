@@ -194,3 +194,5 @@ Contributions are welcome! Here are several ways you can contribute:
 This project is protected under the [GNU Affero General Public License v3.0](https://choosealicense.com/licenses/agpl-3.0/)
 
 ---
+KAFKA_ADDRESS="organic-ray-9236-us1-kafka.upstash.io:9092" KAFKA_USER="b3JnYW5pYy1yYXktOTIzNiQsp1hujJxnWrUY-WO8UK9CyCD7hcKBsa5731Ijvfk" KAFKA_PASSWORD="ZGIwNWQwMDYtYjlhMC00NWI3LWFmN2QtMWZlMDVlNDQ0MjEw" TOPIC="raw-weather-report" POLLING_INTERVAL_IN_SECONDS="10" go run main.go
+REDIS_ADDRESS="gentle-kingfish-45342.upstash.io" REDIS_PASSWORD="AbEeAAIncDFjMzVlNjAxMTFiYTU0MTFlYWQ1NDk2YmM3NTQ2YmE3YnAxNDUzNDI" REDIS_DB_INT=0 REDIS_USER="default"

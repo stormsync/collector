@@ -2,80 +2,43 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
-	"strconv"
 	"time"
 
 	slogenv "github.com/cbrewster/slog-env"
+	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl/scram"
 
 	"github.com/stormsync/collector"
+	"github.com/stormsync/collector/config"
 )
 
 func main() {
 	logger := slog.New(slogenv.NewHandler(slog.NewTextHandler(os.Stdout, nil)))
 
+	environment := os.Getenv("ENVIRONMENT")
+
+	vt := os.Getenv("VAULT_TOKEN")
+
+	config, err := config.NewConfig(environment)
+	if err != nil {
+		log.Fatal("unable to create new config: ", err)
+	}
+	config.FetchVaultData(vt)
 	var (
 		WindURL    = "https://www.spc.noaa.gov/climo/reports/today_wind.csv"
 		HailURL    = "https://www.spc.noaa.gov/climo/reports/today_hail.csv"
 		TornadoURL = "https://www.spc.noaa.gov/climo/reports/today_torn.csv"
 	)
 
-	var envFail = false
-	address := os.Getenv("KAFKA_ADDRESS")
-	if address == "" {
-		envFail = true
-		logger.Error("ENV variable required", "Name", "KAFKA_ADDRESS")
-	}
-
-	user := os.Getenv("KAFKA_USER")
-	if user == "" {
-		envFail = true
-		logger.Error("ENV variable required", "Name", "KAFKA_USER")
-	}
-	pw := os.Getenv("KAFKA_PASSWORD")
-	if pw == "" {
-		envFail = true
-		logger.Error("ENV variable required", "Name", "KAFKA_PASSWORD")
-	}
-	topic := os.Getenv("TOPIC")
-	if topic == "" {
-		envFail = true
-		logger.Error("ENV variable required", "Name", "TOPIC")
-	}
-
-	intervalDuration, err := time.ParseDuration(os.Getenv("POLLING_INTERVAL_IN_SECONDS") + "s")
+	interval, err := time.ParseDuration(config.Services.Collector.Interval)
 	if err != nil {
-		envFail = true
-		logger.Error("ENV variable required", "Name", "POLLING_INTERVAL_IN_SECONDS")
-	}
-
-	redisAddress := os.Getenv("REDIS_ADDRESS")
-	if redisAddress == "" {
-		envFail = true
-		logger.Error("ENV variable required", "Name", "REDIS_ADDRESS")
-
-	}
-	redisUser := os.Getenv("REDIS_USER")
-	if redisUser == "" {
-		envFail = true
-		logger.Error("ENV variable required", "Name", "REDIS_USER")
-	}
-
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	if redisPassword == "" {
-		envFail = true
-		logger.Error("ENV variable required", "Name", "REDIS_PASSWORD")
-	}
-
-	if envFail {
-		os.Exit(1)
-	}
-	redisDB := os.Getenv("REDIS_DB_INT")
-	dbInt, err := strconv.Atoi(redisDB)
-	if err != nil {
-		dbInt = 0
+		log.Fatal("failed to parse interval: ", err)
 	}
 
 	urlMap := map[collector.ReportType]string{
@@ -84,21 +47,53 @@ func main() {
 		collector.Tornado: TornadoURL,
 	}
 
-	logger.Info("Starting Collection Service", "collection interval", intervalDuration.String())
-	logger.Info("collecting source", "wind", WindURL)
-	logger.Info("collecting source", "hail", HailURL)
-	logger.Info("collecting source", "tornado", TornadoURL)
-	rc, err := collector.NewRedisClient(redisAddress, redisUser, redisPassword, dbInt)
+	rcc := config.Services.Redis
+	rc, err := NewRedisClient(rcc.Host+":"+rcc.Port, rcc.User, rcc.Password, rcc.DB)
 	if err != nil {
 		log.Fatal("failed to create redis client: ", err)
 	}
 
-	collector, err := collector.NewCollector(address, topic, user, pw, urlMap, rc, logger)
+	kc := config.Services.Kafka
+	kw, err := NewKafkaWriter(kc.Host, kc.Port, kc.Topic, kc.User, kc.Password)
+	if err != nil {
+		log.Fatal("unable to create a kafka writer: ", err)
+	}
+
+	collector, err := collector.NewCollector(urlMap, rc, kw, logger)
 	if err != nil {
 		log.Fatal("failed to create the collect: %w", err)
 	}
 
-	ctx := context.Background()
+	logger.Info("Starting Collection Service", "collection interval", interval.String())
+	logger.Info("collecting source", "wind", WindURL)
+	logger.Info("collecting source", "hail", HailURL)
+	logger.Info("collecting source", "tornado", TornadoURL)
 
-	collector.Poll(ctx, intervalDuration)
+	ctx := context.Background()
+	collector.Poll(ctx, interval)
+}
+
+func NewKafkaWriter(host, port, topic, user, pw string) (*kafka.Writer, error) {
+	mechanism, err := scram.Mechanism(scram.SHA256, user, pw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create scram.Mechanism for auth: %w", err)
+	}
+	w := &kafka.Writer{
+		Addr:  kafka.TCP(host + ":" + port),
+		Topic: topic,
+		Transport: &kafka.Transport{
+			SASL: mechanism,
+			TLS:  &tls.Config{},
+		},
+	}
+	return w, nil
+}
+
+func NewRedisClient(address, user, password string, db int) (*redis.Client, error) {
+	opt, err := redis.ParseURL(fmt.Sprintf("rediss://%s:%s@%s", user, password, address))
+	if err != nil {
+		return nil, err
+	}
+	c := redis.NewClient(opt)
+	return c, nil
 }
