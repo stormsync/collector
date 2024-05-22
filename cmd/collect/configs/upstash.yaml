@@ -1,0 +1,21 @@
+#config/upstash-development.yaml
+services:
+  collector:
+    vault-path: stormsync/collector/upstash-development
+    interval: 10s
+  kafka:
+    host: organic-ray-9236-us1-kafka.upstash.io
+    port: 9092
+    topic: raw-weather-report
+    user: kafka_user
+    password: kafka_password
+  redis:
+    host: gentle-kingfish-45342.upstash.io
+    port: 6379
+    user: redis_user
+    password: redis_password
+    db: 0
+  vault:
+    protocol: https
+    host: 192.168.1.100
+    port: 8200

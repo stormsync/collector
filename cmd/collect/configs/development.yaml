@@ -1,7 +1,7 @@
-#config/development.yaml
+#config/local-development.yaml
 services:
   collector:
-    vault-path: stormsync/collector/development
+    vault-path: stormsync/collector/local-development
     interval: 10s
   kafka:
     host: kafka-1
@@ -11,9 +11,9 @@ services:
     host: redis
     port: 6379
     user: redis_user
-    password:
+    password: redis_password
     db: 0
   vault:
     protocol: http
-    host: vault
+    host: 192.168.1.100
     port: 8200
