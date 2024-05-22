@@ -4,16 +4,14 @@ services:
     vault-path: stormsync/collector/development
     interval: 10s
   kafka:
-    host: 0.0.0.0
+    host: kafka-1
     port: 9092
-    user: kafka_user
-    password: kafka_password
     topic: raw-weather-report
   redis:
     host: redis
-    port: 6200
+    port: 6379
     user: redis_user
-    password: redis_password
+    password:
     db: 0
   vault:
     protocol: http

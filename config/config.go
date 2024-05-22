@@ -20,22 +20,20 @@ type Config struct {
 			Interval  string `yaml:"interval"`
 		} `yaml:"collector"`
 		Kafka struct {
-			Host     string `yaml:"host"`
-			Port     string `yaml:"port:"`
-			User     string `yaml:"user"`
-			Password string `yaml:"password"`
-			Topic    string `yaml:"topic"`
+			Host  string `yaml:"host"`
+			Port  string `yaml:"port"`
+			Topic string `yaml:"topic"`
 		} `yaml:"kafka"`
 		Redis struct {
 			Host     string `yaml:"host"`
-			Port     string `yaml:"port:"`
+			Port     string `yaml:"port"`
 			User     string `yaml:"user"`
 			Password string `yaml:"password"`
 			DB       int    `yaml:db"`
 		} `yaml:"redis"`
 		Vault struct {
 			Host     string `yaml:"host"`
-			Port     string `yaml:"port:"`
+			Port     string `yaml:"port"`
 			Protocol string `yaml:"protocol"`
 		} `yaml:"vault"`
 	}
@@ -88,17 +86,17 @@ func (c *Config) FetchVaultData(vaultToken string) error {
 	}
 	c.Services.Redis.User = rp
 
-	ku, err := getSecret(ctx, c.Services.Kafka.User, client)
-	if err != nil {
-		return fmt.Errorf("failed to fetch vault data: %w", err)
-	}
-	c.Services.Redis.User = ku
-
-	kp, err := getSecret(ctx, c.Services.Kafka.Password, client)
-	if err != nil {
-		return fmt.Errorf("failed to fetch vault data: %w", err)
-	}
-	c.Services.Redis.User = kp
+	// ku, err := getSecret(ctx, c.Services.Kafka.User, client)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to fetch vault data: %w", err)
+	// }
+	// c.Services.Redis.User = ku
+	//
+	// kp, err := getSecret(ctx, c.Services.Kafka.Password, client)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to fetch vault data: %w", err)
+	// }
+	// c.Services.Redis.User = kp
 
 	return nil
 }
