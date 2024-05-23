@@ -4,9 +4,9 @@ services:
     container_name: vault
     image: vault:1.12.0
     environment:
-      VAULT_ADDR: "http://0.0.0.0:8200"
-      VAULT_API_ADDR: "http://0.0.0.0:8200"
-      VAULT_LOCAL_CONFIG: '{"backend": {"file": {"path": "/vault/file"}},"listener": {"tcp": {"address": "0.0.0.0:8200", "tls_disable": 1}}, "ui": true}'
+      VAULT_ADDR: "http://vault:8200"
+      VAULT_API_ADDR: "http://vault:8200"
+      VAULT_LOCAL_CONFIG: '{"backend": {"file": {"path": "/vault/file"}},"listener": {"tcp": {"address": "vault:8200", "tls_disable": 1}}, "ui": true}'
       TZ: "America/Chicago"
     ports:
       - "8200:8200"
@@ -16,7 +16,7 @@ services:
 
     cap_add:
       - IPC_LOCK
-    entrypoint: vault server -dev -dev-listen-address="0.0.0.0:8200" -dev-root-token-id="root"
+    entrypoint: vault server -dev -dev-listen-address="vault:8200" -dev-root-token-id="root"
     networks:
       - app-tier
 
@@ -29,7 +29,7 @@ services:
     volumes:
       - /Users/jc/compose-volumes/redis/data:/data:rw
     networks:
-      - app-tier
+    - app-tier
 
 
   zookeeper:
@@ -40,6 +40,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+    - app-tier
 
   kafka-1:
     image: confluentinc/cp-kafka:7.6.0
@@ -56,30 +58,108 @@ services:
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
     depends_on:
       - zookeeper
+    networks:
+    - app-tier
+
+  jaeger:
+    container_name: jaeger
+    image: jaegertracing/all-in-one:latest
+    command:
+      - "--query.base-path=/jaeger/ui"
+      - "--prometheus.server-url=prometheus:9090"
+      - "--prometheus.query.support-spanmetrics-connector=true"
+      - "--prometheus.query.normalize-calls=true"
+      - "--prometheus.query.normalize-duration=true"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - METRICS_STORAGE_TYPE=prometheus
+      - PROMETHEUS_SERVER_URL=prometheus:9090
+    ports:
+      - '14269:14269'
+      - '4317:4317' # OTLP collector grpc
+      - '4318:4318' # OTLP collector http
+      - '16686:16686'
+      - '16685:16685'
+    expose:
+      - '4317'
+      - '14269'
+    networks:
+    - app-tier
 
 
 
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus' #Where Prometheus writes its database. Defaults to data/.
+      - '--storage.tsdb.retention.time=1d' #When to remove old data. Defaults to 15d. Overrides storage.tsdb.retention if this flag is set to anything other than default.
+      - '--storage.tsdb.retention.size=1GB'
+      - '--enable-feature=otlp-write-receiver'
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:rw
+      - prometheus-data-volume:/prometheus:rw
+    ports:
+      - '9090:9090'
+    networks:
+    - app-tier
+    deploy:
+      resources:
+        limits:
+          memory: 300m
+          cpus: "0.60"
+
+  otelcol:
+    container_name: otelcol
+    image: otel/opentelemetry-collector-contrib:latest
+    restart: unless-stopped
+    command: [ "--config=/etc/otelcol-config.yml" ]
+    volumes:
+      - ./deploy/otelcollector/otelcol-config.yml:/etc/otelcol-config.yml:rw
+    expose:
+      - '4318'
+    ports:
+      - '14318:4318'
+    depends_on:
+      - jaeger
+    networks:
+    - app-tier
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+          cpus: "0.60"
 
   collector:
-    hostname: collector
     container_name: collector
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: collector:latest
     environment:
       VAULT_TOKEN: "root"
-      ENVIRONMENT: "development"
+      ENVIRONMENT: "upstash-development"
     volumes:
-      - /Users/jc/compose-volumes/collector/configs/development.yaml:/configs/development.yaml:rw
+      - ./configs/upstash-development.yml:/configs/upstash-development.yml:rw
     user: "1001"
     expose:
     - "8088"
-    entrypoint: "app"
     depends_on:
       - vault
       - redis
       - kafka-1
+      - prometheus
+      - otelcol
     networks:
-      - app-tier
-
+    - app-tier
+    deploy:
+      resources:
+        limits:
+          memory: 200m
+          cpus: "0.70"
 networks:
   app-tier:
     driver: bridge
+volumes:
+  prometheus-data-volume:

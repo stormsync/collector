@@ -18,7 +18,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 
 	"github.com/stormsync/collector"
-	"github.com/stormsync/collector/internal/config"
+	"github.com/stormsync/collector/config"
 )
 
 func main() {
