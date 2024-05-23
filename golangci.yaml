@@ -1,157 +1,50 @@
 run:
   concurrency: 8
-  timeout: 30m
+  timeout: 10m
   issues-exit-code: 1
   tests: true
-  build-tags:
-    - integration
-  modules-download-mode: readonly
-  allow-parallel-runners: false
-  go: ""
+issues.exclude-dirs:
+    - bin
+    - vendor
+    - docs
+    - var
+    - tmp
+    - .cache
+    - pkg
+
+output:
+  formats:
+  - colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  govet:
+    shadow: true
+  dupl:
+    threshold: 100
+  goconst:
+    min-len:         2
+    min-occurrences: 2
+
 linters:
-  fast: false
+  disable-all: true
   enable:
-    - asasalint
-    - asciicheck
-    - bidichk
-    - bodyclose
-    - contextcheck
-    - durationcheck
     - errcheck
-    - errname
-    - errorlint
-    - exportloopref
-    - gocritic
-    - godot
-    - gofmt
-    - gofumpt
+    - goconst
     - goimports
-    - gomoddirectives
     - gosec
-    - gosimple
     - govet
     - ineffassign
-    - interfacer
-    - misspell
-    - nakedret
-    - nilerr
-    - nilnil
-    - noctx
-    - nolintlint
-    - prealloc
-    - predeclared
-    - promlinter
-    - reassign
+    - megacheck
     - revive
-    - rowserrcheck
-    - sqlclosecheck
-    - staticcheck
-    - stylecheck
-    - tagliatelle
-    - tenv
-    - testableexamples
-    - thelper
-    - tparallel
-    - unconvert
-    - unparam
-    - unused
-    - usestdlibvars
-    - wastedassign
-  disable:
-    - containedctx
-    - cyclop
-    - deadcode
-    - decorder
-    - depguard
-    - dogsled
-    - dupl
-    - dupword
-    - errchkjson
-    - execinquery
-    - exhaustive
-    - exhaustivestruct 
-    - exhaustruct
-    - forbidigo
-    - forcetypeassert
-    - funlen
-    - gci
-    - ginkgolinter
-    - gocheckcompilerdirectives
-    - gochecknoglobals
-    - gochecknoinits
-    - gocognit
-    - goconst
-    - gocyclo
-    - godox
-    - goheader
-    - golint
-    - gomnd
-    - gomodguard
-    - goprintffuncname
-    - grouper
-    - ifshort
-    - importas
-    - interfacebloat
-    - ireturn
-    - lll
-    - loggercheck
-    - maintidx
-    - makezero
-    - maligned
-    - musttag
-    - nestif
-    - nlreturn
-    - nonamedreturns
-    - nosnakecase
-    - nosprintfhostport
-    - paralleltest
-    - testpackage
     - typecheck
-    - varnamelen
-    - whitespace
-    - wrapcheck
-    - wsl
-linters-settings:
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - hugeParam
-      - rangeExprCopy
-      - rangeValCopy
-  errcheck:
-    check-type-assertions: true 
-    check-blank: true 
-    exclude-functions:
-      - io/ioutil.ReadFile
-      - io.Copy(*bytes.Buffer)
-      - io.Copy(os.Stdout)
-  govet:
-    disable:
-      - fieldalignment 
-  nakedret:
-    max-func-lines: 1 
-  tagliatelle:
-    case:
-      rules:
-        json: snake 
-        yaml: snake 
-        xml: camel
-        bson: camel
-        avro: snake
-        mapstructure: kebab
-output:
-  print-issued-lines: false
-  print-linter-name: true
-  uniq-by-line: false
-  path-prefix: ""
-  sort-results: true
+    - unused
+
 issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
-  new: false
-  fix: true
+  exclude-use-default: false
+  exclude:
+    # _ instead of err checks
+    - G104
+    - exported func .* returns unexported type .*, which can be annoying to use
+    - should have a package comment
