@@ -27,10 +27,6 @@ githubWorkflow:
     coveralls: true
     postgres: true
     ignorePaths: []
-  license:
-    enabled: true
-    ignorePatterns:
-      - "vendor/**"
 
 renovate:
   enabled: true
