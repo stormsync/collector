@@ -27,7 +27,7 @@ GO_TESTENV =
 build-all: build/go-makefile-maker
 
 build/go-makefile-maker: FORCE
-	go build $(GO_BUILDFLAGS) -ldflags '-s -w $(GO_LDFLAGS)' -o build/go-makefile-maker .
+	go mod tidy && go mod vendor && go build $(GO_BUILDFLAGS) -ldflags '-s -w $(GO_LDFLAGS)' -o build/go-makefile-maker .
 
 DESTDIR =
 ifeq ($(shell uname -s),Darwin)

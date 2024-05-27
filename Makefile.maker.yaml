@@ -34,9 +34,6 @@ renovate:
     - jason-costello
 
 verbatim: |
-  run: go mod download all
-  run: go mod vendor
-  run: go build -mod vendor -ldflags '-s -w ' -o build/go-makefile-maker
   run: build/collector
     ./build/collector
 
