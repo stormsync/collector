@@ -1,6 +1,6 @@
 FROM golang:1.22-alpine3.19 AS builder
 MAINTAINER org.opencontainers.image.authors="email@jasoncostello.com"
-RUN apk update && apk add ca-certificates bash
+RUN apk update && apk add ca-certificates
 
 
 ADD ./ /appdir/

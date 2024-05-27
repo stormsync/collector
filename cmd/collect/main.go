@@ -1,104 +1,66 @@
+// Copyright 2024 SAP SE
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
 	"os"
+	"os/signal"
 	"time"
 
 	slogenv "github.com/cbrewster/slog-env"
-	jaegerPropagator "go.opentelemetry.io/contrib/propagators/jaeger"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 
 	"github.com/stormsync/collector"
 	"github.com/stormsync/collector/config"
 )
 
 func main() {
-	// Create resource.
-
-	// const op = "api.banners.CreateBanner"
 	logger := slog.New(slogenv.NewHandler(slog.NewTextHandler(os.Stdout, nil)))
-	otel.SetTextMapPropagator(jaegerPropagator.Jaeger{})
-	ctx := context.Background()
-	traceProvider, err := startTracer()
-	if err != nil {
-		log.Fatal("Unable to initiate tracer: ", err)
-	}
-	defer func() {
-		if err := traceProvider.Shutdown(context.Background()); err != nil {
-			log.Fatalf("traceprovider: %v", err)
-		}
-	}()
 
-	tracer := traceProvider.Tracer("collector")
-	ctx, span := tracer.Start(ctx, "main")
-	defer span.End()
-	startTracer()
+	log.Printf("Waiting for connection...")
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+
 	vt := os.Getenv("VAULT_TOKEN")
-
-	config, err := config.NewConfig(ctx, vt)
+	var errs error
+	collConfig, err := config.NewConfig(ctx, vt)
 	if err != nil {
-		log.Fatal("unable to create new config: ", err)
+		errs = errors.Join(errs, fmt.Errorf("unable to create new collConfig: %w", err))
 	}
 
-	interval, err := time.ParseDuration(config.Services.Collector.Interval)
+	interval, err := time.ParseDuration(collConfig.Services.Collector.Interval)
 	if err != nil {
-		log.Fatal("failed to parse interval: ", err)
+		errs = errors.Join(errs, fmt.Errorf("failed to parse interval: %w", err))
 	}
 
-	collector, err := collector.NewCollector(ctx, *config, tracer, logger)
+	reportCollector, err := collector.NewCollector(ctx, *collConfig, logger)
 	if err != nil {
-		log.Fatal("failed to create the collect: ", err)
+		errs = errors.Join(errs, fmt.Errorf("failed to create:  %w)", err))
 	}
 
+	if errs != nil {
+		cancel()
+		fmt.Printf("Errors: %s\n", errs)
+		os.Exit(1)
+	}
 	logger.Info("Starting Collection Service", "collection interval", interval.String())
+	defer cancel()
 
-	ctx = context.WithoutCancel(ctx)
-	collector.Poll(ctx, interval)
-}
-
-func startTracer() (*trace.TracerProvider, error) {
-	headers := map[string]string{
-		"content-type": "application/json",
-	}
-
-	exporter, err := otlptrace.New(
-		context.Background(),
-		otlptracehttp.NewClient(
-			otlptracehttp.WithEndpoint("localhost:4318"),
-			otlptracehttp.WithHeaders(headers),
-			otlptracehttp.WithInsecure(),
-		),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create new tracing exporter: %w", err)
-	}
-
-	tracerProvider := trace.NewTracerProvider(
-		trace.WithBatcher(
-			exporter,
-			trace.WithMaxExportBatchSize(trace.DefaultMaxExportBatchSize),
-			trace.WithBatchTimeout(trace.DefaultScheduleDelay*time.Millisecond),
-			trace.WithMaxExportBatchSize(trace.DefaultMaxExportBatchSize),
-		),
-		trace.WithResource(
-			resource.NewWithAttributes(
-				semconv.SchemaURL,
-				semconv.ServiceNameKey.String("collector"),
-			),
-		),
-	)
-
-	otel.SetTracerProvider(tracerProvider)
-
-	return tracerProvider, nil
-
+	reportCollector.Poll(ctx, interval)
 }

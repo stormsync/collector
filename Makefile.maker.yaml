@@ -1,0 +1,39 @@
+# Configuration file for <https://github.com/sapcc/go-makefile-maker>
+
+
+metadata:
+  url: https://github.com/sapcc/go-makefile-maker
+
+binaries:
+  - name:        go-makefile-maker
+    fromPackage: .
+    installTo:   bin/
+
+golang:
+  setGoModVersion: true
+
+golangciLint:
+  createConfig: true
+
+
+githubWorkflow:
+  global:
+    defaultBranch: development
+    goVersion: 1.22.3
+  ci:
+    enabled: true
+    runOn:
+    - ubuntu-latest
+    coveralls: true
+    postgres: false
+    ignorePaths: []
+
+renovate:
+  enabled: true
+  assignees:
+    - jason-costello
+
+verbatim: |
+  run: build/collector
+    ./build/collector
+
