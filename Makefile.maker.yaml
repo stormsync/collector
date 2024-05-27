@@ -15,6 +15,7 @@ golangciLint:
   createConfig: true
 
 githubWorkflow:
+  defaultBranch: development
   ci:
     enabled: true
     runOn:
@@ -24,6 +25,10 @@ githubWorkflow:
     coveralls: true
     postgres: true
     ignorePaths: []
+  license:
+    enabled: true
+    ignorePatterns:
+      - "vendor/**"
 
 renovate:
   enabled: true
@@ -35,7 +40,3 @@ verbatim: |
   run: build/go-makefile-maker
     ./build/go-makefile-maker
 
-license:
-  enabled: true
-  ignorePatterns:
-    - "vendor/**"
