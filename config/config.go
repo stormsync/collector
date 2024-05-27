@@ -2,107 +2,130 @@ package config
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"log"
 	"os"
 
-	vault "github.com/hashicorp/vault/api"
+	"github.com/hashicorp/vault/api"
+	"go.opentelemetry.io/otel/attribute"
 	"gopkg.in/yaml.v2"
 )
 
+const configFile = "../../configs/local-development.yaml"
+
 type Config struct {
-	Services struct {
-		Collector struct {
-			VaultPath      string   `yaml:"vault-path"`
-			Interval       string   `yaml:"interval"`
-			CollectionURLs []string `yaml:"collection-urls"`
-		} `yaml:"collector"`
-		Kafka struct {
-			Host     string `yaml:"host"`
-			Port     string `yaml:"port"`
-			Topic    string `yaml:"topic"`
-			User     string `yaml:"user"`
-			Password string `yaml:"password"`
-		} `yaml:"kafka"`
-		Redis struct {
-			Host     string `yaml:"host"`
-			Port     string `yaml:"port"`
-			User     string `yaml:"user"`
-			Password string `yaml:"password"`
-			DB       int    `yaml:db"`
-		} `yaml:"redis"`
-		Vault struct {
-			Host     string `yaml:"host"`
-			Port     string `yaml:"port"`
-			Protocol string `yaml:"protocol"`
-			Path     string `yaml:"path"`
-		} `yaml:"vault"`
-	}
+	Services Services `yaml:"services"`
 }
+type CollectionUrls struct {
+	Type string `yaml:"type"`
+	URL  string `yaml:"url"`
+}
+type Collector struct {
+	VaultPath      string           `yaml:"vault-path"`
+	Interval       string           `yaml:"interval"`
+	CollectionUrls []CollectionUrls `yaml:"collection-urls"`
+}
+type Kafka struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Topic    string `yaml:"topic"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+}
+type Redis struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	Db       int    `yaml:"db"`
+}
+type Vault struct {
+	Protocol string `yaml:"protocol"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+}
+type Jaeger struct {
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
+}
+type Services struct {
+	Collector Collector `yaml:"collector"`
+	Kafka     Kafka     `yaml:"kafka"`
+	Redis     Redis     `yaml:"redis"`
+	Vault     Vault     `yaml:"vault"`
+	Jaeger    Jaeger    `yaml:"jaeger"`
+}
+
+var configKey = attribute.Key("config/config.go")
 
 func NewConfig(ctx context.Context, vaultToken string) (*Config, error) {
 
 	c := &Config{}
-
-	// TODO remoge this hack
-	var fn string
-	if os.Getenv("ENV") != "dev" {
-		fn = "/etc/collector-config.yml"
-	} else {
-		fn = "../../configs/upstash-development.yaml"
-	}
-	f, err := os.Open(fn)
-
+	f, err := os.Open(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open configuration file: %w", err)
 	}
-
 	defer f.Close()
 
 	dec := yaml.NewDecoder(f)
-
 	if err := dec.Decode(&c); err != nil {
 		return nil, fmt.Errorf("unable to decode config file: %w", err)
 	}
 
-	vaultAddr := fmt.Sprintf("%s://%s:%s", c.Services.Vault.Protocol, c.Services.Vault.Host, c.Services.Vault.Port)
+	// Vault connection details
+	vaultAddress := "http://192.168.106.2:8200" // Replace with your Vault URL
+	vaultToken = "root"                         // Replace with your Vault token
+	path := "secret/data/stormsync/development"
 
-	vConfig := vault.DefaultConfig()
-	vConfig.Address = vaultAddr
-	client, err := vault.NewClient(vConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to access vault address: %w", err)
+	// Create a client to interact with Vault
+	config := &api.Config{
+		Address: vaultAddress,
 	}
 
+	client, err := api.NewClient(config)
+	if err != nil {
+		log.Fatalf("Failed to create Vault client: %v", err)
+	}
+
+	// Set the Vault token
 	client.SetToken(vaultToken)
 
-	secret, err := client.KVv2("secret").Get(ctx, "stormsync/collector/upstash-development")
+	// Verify the client is authenticated
+	_, err = client.Auth().Token().LookupSelf()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read the secret from  vault: %w", err)
+		log.Fatalf("Failed to authenticate to Vault: %v", err)
 	}
+	c.Services.Redis.User = mustReadFromVault(ctx, client, path, "redis_user")
 
-	ku, ok := secret.Data["kafka-user"].(string)
-	if !ok {
-		return nil, errors.New("unable to read the secret for the key value")
-	}
-	c.Services.Kafka.User = ku
+	c.Services.Redis.Password = mustReadFromVault(ctx, client, path, "redis_password")
 
-	kp, ok := secret.Data["kafka-password"].(string)
-	if !ok {
-		return nil, errors.New("unable to read the secret for the key value")
-	}
-	c.Services.Kafka.Password = kp
+	c.Services.Kafka.User = mustReadFromVault(ctx, client, path, "kafka_user")
 
-	ru, ok := secret.Data["redis-user"].(string)
-	if !ok {
-		return nil, errors.New("unable to read the secret for the key value")
-	}
-	c.Services.Redis.User = ru
-	rp, ok := secret.Data["redis-password"].(string)
-	if !ok {
-		return nil, errors.New("unable to read the secret for the key value")
-	}
-	c.Services.Redis.Password = rp
+	c.Services.Kafka.Password = mustReadFromVault(ctx, client, path, "kafka_password")
 
 	return c, nil
+}
+
+func mustReadFromVault(ctx context.Context, client *api.Client, path, key string) string {
+	secret, err := client.Logical().Read(path)
+	if err != nil {
+		log.Fatalf("failed to read data from %s: %s", path, err)
+	}
+
+	if secret == nil || secret.Data["data"] == nil {
+		log.Fatal("no data found at", path)
+	}
+
+	data, ok := secret.Data["data"].(map[string]interface{})
+	if !ok {
+
+		log.Fatal("data format error at ", path)
+	}
+
+	value, ok := data[key].(string)
+	if !ok {
+		log.Fatalf("key %s not found at %s ", key, path)
+	}
+
+	return value
 }
