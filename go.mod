@@ -1,6 +1,6 @@
 module github.com/stormsync/collector
 
-go 1.22.2
+go 1.22
 
 require (
 	github.com/cbrewster/slog-env v0.1.1
