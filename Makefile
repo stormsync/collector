@@ -14,8 +14,8 @@ endif
 
 default: build-all
 
-run: build/go-makefile-maker
-	./build/go-makefile-maker
+run: build/collector
+	./build/collector
 
 prepare-static-check: FORCE
 	@if ! hash golangci-lint 2>/dev/null; then printf "\e[1;36m>> Installing golangci-lint (this may take a while)...\e[0m\n"; go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; fi
