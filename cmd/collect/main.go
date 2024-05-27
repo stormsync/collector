@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -9,13 +11,10 @@ import (
 	"time"
 
 	slogenv "github.com/cbrewster/slog-env"
-	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 
 	"github.com/stormsync/collector"
 	"github.com/stormsync/collector/config"
 )
-
-var serviceName = semconv.ServiceNameKey.String("main")
 
 func main() {
 	logger := slog.New(slogenv.NewHandler(slog.NewTextHandler(os.Stdout, nil)))
@@ -23,27 +22,31 @@ func main() {
 	log.Printf("Waiting for connection...")
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
 
 	vt := os.Getenv("VAULT_TOKEN")
-
-	config, err := config.NewConfig(ctx, vt)
+	var errs error
+	collConfig, err := config.NewConfig(ctx, vt)
 	if err != nil {
-		log.Fatal("unable to create new config: ", err)
+		errs = errors.Join(errs, fmt.Errorf("unable to create new collConfig: %w", err))
 	}
 
-	interval, err := time.ParseDuration(config.Services.Collector.Interval)
+	interval, err := time.ParseDuration(collConfig.Services.Collector.Interval)
 	if err != nil {
-		log.Fatal("failed to parse interval: ", err)
+		errs = errors.Join(errs, fmt.Errorf("failed to parse interval: %w", err))
 	}
 
-	collector, err := collector.NewCollector(ctx, *config, logger)
+	reportCollector, err := collector.NewCollector(ctx, *collConfig, logger)
 	if err != nil {
-		log.Fatal("failed to create the collector: ", err)
+		errs = errors.Join(errs, fmt.Errorf("failed to create:  %w)", err))
 	}
 
+	if errs != nil {
+		cancel()
+		fmt.Printf("Errors: %s\n", errs)
+		os.Exit(1)
+	}
 	logger.Info("Starting Collection Service", "collection interval", interval.String())
+	defer cancel()
 
-	collector.Poll(ctx, interval)
-
+	reportCollector.Poll(ctx, interval)
 }

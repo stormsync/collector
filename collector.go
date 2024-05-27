@@ -5,10 +5,10 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"hash"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -50,8 +50,6 @@ type Collector struct {
 	topic          string
 	collectionURLs []config.CollectionUrls
 	producer       *kafka.Writer
-	lineHashes     map[string]struct{}
-	hasher         hash.Hash
 	logger         *slog.Logger
 
 	redis *redis.Client
@@ -92,7 +90,7 @@ func NewCollector(ctx context.Context, c config.Config, l *slog.Logger) (*Collec
 		Addr:     fmt.Sprintf("%s:%d", c.Services.Redis.Host, &c.Services.Redis.Port),
 		Username: c.Services.Redis.User,
 		Password: c.Services.Redis.Password,
-		DB:       c.Services.Redis.Db,
+		DB:       c.Services.Redis.DB,
 	})
 
 	return &Collector{
@@ -117,24 +115,30 @@ func newKafkaWriter(host, topic, user, pw string, port int) (*kafka.Writer, erro
 		}
 		w.Transport = &kafka.Transport{
 			SASL: mechanism,
-			TLS:  &tls.Config{},
+			TLS:  &tls.Config{}, //nolint:gosec
 		}
 	}
 	return w, nil
 }
 
 // collect does the work of making the get request and checking the resp for validity.
-func (c *Collector) collect(ctx context.Context, url string, logger *slog.Logger) ([]byte, error) {
-
+func (c *Collector) collect(ctx context.Context, rptURL string, logger *slog.Logger) ([]byte, error) {
 	var rb []byte
 
-	resp, err := http.Get(url)
+	u, err := url.Parse(rptURL)
 	if err != nil {
-
+		return nil, fmt.Errorf("invalid url: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create request: %w", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
 		return rb, fmt.Errorf("error making get request: %w", err)
 	}
-	if resp.StatusCode != http.StatusOK {
 
+	if resp.StatusCode != http.StatusOK {
 		logger.Debug("response status", "status code", resp.StatusCode, "status", resp.Status)
 		return rb, fmt.Errorf("non-200 status code returned: %s", resp.Status)
 	}
@@ -142,7 +146,6 @@ func (c *Collector) collect(ctx context.Context, url string, logger *slog.Logger
 	defer resp.Body.Close()
 	b, e := io.ReadAll(resp.Body)
 	if e != nil {
-
 		return rb, fmt.Errorf("failed to read body: %w", err)
 	}
 	return b, nil
@@ -152,21 +155,18 @@ func (c *Collector) collect(ctx context.Context, url string, logger *slog.Logger
 // If it has, no data has changed and processing is stopped for that line.
 func (c *Collector) skipProcessing(ctx context.Context, b []byte, reportType string) (bool, error) {
 	nv := reportType + string(b)
-	nv = strings.Replace(nv, " ", "", -1)
-	nv = strings.Replace(nv, ",", "", -1)
+	nv = strings.ReplaceAll(nv, " ", "")
+	nv = strings.ReplaceAll(nv, ",", "")
 
 	keyExists, err := c.redis.Exists(ctx, nv).Result()
 	if err != nil {
-
 		return false, fmt.Errorf("failed to check redis: %w", err)
 	}
 	if keyExists > 0 {
-
 		return true, nil
 	}
 
 	if err := c.redis.Set(ctx, nv, 0, 0).Err(); err != nil {
-
 		c.logger.Debug("error from redis", "set error", err.Error())
 	}
 	return false, nil
@@ -177,12 +177,9 @@ func (c *Collector) skipProcessing(ctx context.Context, b []byte, reportType str
 // report type easily enough. Each line is iterated over and checked against a cache to
 // see if this has already been seen.  If so, it is not processed.
 func (c *Collector) CollectAndPublish(ctx context.Context) error {
-
 	for _, url := range c.collectionURLs {
-
 		body, err := c.collect(ctx, url.URL, c.logger)
 		if err != nil {
-
 			continue
 		}
 		lines := strings.Split(string(body), "\n")
@@ -193,16 +190,13 @@ func (c *Collector) CollectAndPublish(ctx context.Context) error {
 		for i, line := range lines {
 			line = strings.TrimSpace(line)
 			if i == 0 || line == "" {
-
 				continue
 			}
 			ttl++
 
 			skip, err := c.skipProcessing(ctx, []byte(line), url.Type)
 			if err != nil {
-
 				continue
-
 			}
 
 			if skip {
@@ -233,7 +227,6 @@ func (c *Collector) CollectAndPublish(ctx context.Context) error {
 
 // Poll maintains the continued processing of reports at the specified interval.
 func (c *Collector) Poll(ctx context.Context, interval time.Duration) {
-
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 Loop:
@@ -243,10 +236,8 @@ Loop:
 			return
 		case <-ticker.C:
 			if err := c.CollectAndPublish(ctx); err != nil {
-
 				break Loop
 			}
-
 		}
 	}
 	<-ctx.Done()

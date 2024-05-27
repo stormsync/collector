@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/hashicorp/vault/api"
-	"go.opentelemetry.io/otel/attribute"
 	"gopkg.in/yaml.v2"
 )
 
@@ -37,11 +36,13 @@ type Redis struct {
 	Port     int    `yaml:"port"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
-	Db       int    `yaml:"db"`
+	DB       int    `yaml:"db"`
 }
 type Vault struct {
 	Protocol string `yaml:"protocol"`
 	Host     string `yaml:"host"`
+	Address  string `yaml:"address"`
+	Path     string `yaml:"path"`
 	Port     int    `yaml:"port"`
 }
 type Jaeger struct {
@@ -56,34 +57,29 @@ type Services struct {
 	Jaeger    Jaeger    `yaml:"jaeger"`
 }
 
-var configKey = attribute.Key("config/config.go")
-
 func NewConfig(ctx context.Context, vaultToken string) (*Config, error) {
-
 	c := &Config{}
 	f, err := os.Open(configFile)
 	if err != nil {
+		f.Close()
 		return nil, fmt.Errorf("failed to open configuration file: %w", err)
 	}
-	defer f.Close()
 
 	dec := yaml.NewDecoder(f)
 	if err := dec.Decode(&c); err != nil {
+		f.Close()
 		return nil, fmt.Errorf("unable to decode config file: %w", err)
 	}
 
-	// Vault connection details
-	vaultAddress := "http://192.168.106.2:8200" // Replace with your Vault URL
-	vaultToken = "root"                         // Replace with your Vault token
-	path := "secret/data/stormsync/development"
-
+	addr := fmt.Sprintf("%s://%s:%d", c.Services.Vault.Protocol, c.Services.Vault.Address, c.Services.Vault.Port)
 	// Create a client to interact with Vault
 	config := &api.Config{
-		Address: vaultAddress,
+		Address: addr,
 	}
 
 	client, err := api.NewClient(config)
 	if err != nil {
+		f.Close()
 		log.Fatalf("Failed to create Vault client: %v", err)
 	}
 
@@ -93,20 +89,22 @@ func NewConfig(ctx context.Context, vaultToken string) (*Config, error) {
 	// Verify the client is authenticated
 	_, err = client.Auth().Token().LookupSelf()
 	if err != nil {
+		f.Close()
 		log.Fatalf("Failed to authenticate to Vault: %v", err)
 	}
-	c.Services.Redis.User = mustReadFromVault(ctx, client, path, "redis_user")
+	c.Services.Redis.User = mustReadFromVault(client, c.Services.Vault.Path, "redis_user")
 
-	c.Services.Redis.Password = mustReadFromVault(ctx, client, path, "redis_password")
+	c.Services.Redis.Password = mustReadFromVault(client, c.Services.Vault.Path, "redis_password")
 
-	c.Services.Kafka.User = mustReadFromVault(ctx, client, path, "kafka_user")
+	c.Services.Kafka.User = mustReadFromVault(client, c.Services.Vault.Path, "kafka_user")
 
-	c.Services.Kafka.Password = mustReadFromVault(ctx, client, path, "kafka_password")
+	c.Services.Kafka.Password = mustReadFromVault(client, c.Services.Vault.Path, "kafka_password")
 
+	f.Close()
 	return c, nil
 }
 
-func mustReadFromVault(ctx context.Context, client *api.Client, path, key string) string {
+func mustReadFromVault(client *api.Client, path, key string) string {
 	secret, err := client.Logical().Read(path)
 	if err != nil {
 		log.Fatalf("failed to read data from %s: %s", path, err)
@@ -118,7 +116,6 @@ func mustReadFromVault(ctx context.Context, client *api.Client, path, key string
 
 	data, ok := secret.Data["data"].(map[string]interface{})
 	if !ok {
-
 		log.Fatal("data format error at ", path)
 	}
 
